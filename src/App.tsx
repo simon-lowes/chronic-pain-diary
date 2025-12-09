@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { supabase } from '@/lib/supabase'
+import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, List, Calendar } from '@phosphor-icons/react'
 
@@ -24,13 +24,34 @@ import { filterEntriesByDateRange, filterEntriesByLocation } from '@/lib/pain-ut
 import { BODY_LOCATIONS } from '@/types/pain-entry'
 
 function App() {
-  const [entries, setEntries] = useKV<PainEntry[]>('pain-entries', [])
+  const [entries, setEntries] = useState<PainEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    const loadEntries = async () => {
+      const { data, error } = await supabase
+        .from('pain_entries')
+        .select('*')
+        .order('timestamp', { ascending: false })
+
+      if (error) {
+        console.error(error)
+        toast.error('Could not load entries')
+        setLoading(false)
+        return
+      }
+
+      setEntries(data ?? [])
+      setLoading(false)
+    }
+
+    loadEntries()
+  }, [])
   const [showForm, setShowForm] = useState(false)
   const [dateFilter, setDateFilter] = useState<string | null>(null)
   const [locationFilter, setLocationFilter] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
 
-  const handleAddEntry = (data: {
+  const handleAddEntry = async (data: {
     intensity: number
     locations: string[]
     notes: string
@@ -42,15 +63,32 @@ function App() {
       ...data,
     }
 
-    setEntries(current => [newEntry, ...(current || [])])
+    const { error } = await supabase.from('pain_entries').insert([newEntry])
+
+    if (error) {
+      console.error(error)
+      toast.error('Could not save entry')
+      return
+    }
+
+    setEntries(current => [newEntry, ...current])
     setShowForm(false)
-    toast.success('Pain entry saved', {
-      description: 'Your entry has been recorded successfully.',
-    })
+    toast.success('Pain entry saved')
   }
 
-  const handleDeleteEntry = (id: string) => {
-    setEntries(current => (current || []).filter(entry => entry.id !== id))
+  const handleDeleteEntry = async (id: string) => {
+    const { error } = await supabase
+      .from('pain_entries')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error(error)
+      toast.error('Could not delete entry')
+      return
+    }
+
+    setEntries(current => current.filter(entry => entry.id !== id))
     toast.success('Entry deleted')
   }
 
@@ -88,6 +126,14 @@ function App() {
   }, [entries, dateFilter, locationFilter, searchTerm])
 
   const entryCount = entries?.length ?? 0
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Loading your diary…
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
