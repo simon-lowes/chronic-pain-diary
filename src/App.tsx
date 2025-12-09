@@ -1,6 +1,9 @@
-import { Input } from '@/components/ui/input'
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, List, Calendar } from '@phosphor-icons/react'
+
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -10,16 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, List, Calendar } from '@phosphor-icons/react'
+import { toast } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
+
 import { PainEntry } from '@/types/pain-entry'
 import { PainEntryForm } from '@/components/PainEntryForm'
 import { PainEntryCard } from '@/components/PainEntryCard'
 import { EmptyState } from '@/components/EmptyState'
 import { filterEntriesByDateRange, filterEntriesByLocation } from '@/lib/pain-utils'
 import { BODY_LOCATIONS } from '@/types/pain-entry'
-import { toast } from 'sonner'
-import { Toaster } from '@/components/ui/sonner'
-import { motion, AnimatePresence } from 'framer-motion'
 
 function App() {
   const [entries, setEntries] = useKV<PainEntry[]>('pain-entries', [])
@@ -151,24 +153,18 @@ function App() {
               </TabsList>
 
               {/* Search box */}
-              <div className="w-full sm:w-auto">
+              <div className="w-full sm:max-w-xs">
                 <Input
-                  type="search"
                   placeholder="Search notes, triggers, locations…"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full sm:w-64"
                 />
               </div>
             </div>
 
             <TabsContent value="all" className="space-y-4 mt-6">
               {filteredEntries.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">
-                    No entries match your search or filters.
-                  </p>
-                </div>
+                <EmptyState />
               ) : (
                 <div className="space-y-4">
                   {filteredEntries.map(entry => (
@@ -188,7 +184,9 @@ function App() {
                   <label className="text-sm font-medium">Time Period</label>
                   <Select
                     value={dateFilter || 'all'}
-                    onValueChange={value => setDateFilter(value === 'all' ? null : value)}
+                    onValueChange={value =>
+                      setDateFilter(value === 'all' ? null : value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="All time" />
