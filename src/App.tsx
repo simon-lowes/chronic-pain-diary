@@ -26,6 +26,7 @@ function App() {
   const [showForm, setShowForm] = useState(false)
   const [dateFilter, setDateFilter] = useState<string | null>(null)
   const [locationFilter, setLocationFilter] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const handleAddEntry = (data: {
     intensity: number
@@ -53,19 +54,36 @@ function App() {
 
   const filteredEntries = useMemo(() => {
     if (!entries) return []
-    
+
     let filtered = entries
 
     if (dateFilter) {
-      filtered = filterEntriesByDateRange(filtered, parseInt(dateFilter))
+      filtered = filterEntriesByDateRange(filtered, parseInt(dateFilter, 10))
     }
 
     if (locationFilter) {
       filtered = filterEntriesByLocation(filtered, locationFilter)
     }
 
+    if (searchTerm.trim()) {
+      const query = searchTerm.toLowerCase()
+
+      filtered = filtered.filter(entry => {
+        const text = [
+          entry.notes,
+          entry.triggers.join(' '),
+          entry.locations.join(' '),
+          String(entry.intensity),
+        ]
+          .join(' ')
+          .toLowerCase()
+
+        return text.includes(query)
+      })
+    }
+
     return filtered
-  }, [entries, dateFilter, locationFilter])
+  }, [entries, dateFilter, locationFilter, searchTerm])
 
   const entryCount = entries?.length ?? 0
 
@@ -131,14 +149,29 @@ function App() {
                   Filter
                 </TabsTrigger>
               </TabsList>
+
+              {/* Search box */}
+              <div className="w-full sm:w-auto">
+                <Input
+                  type="search"
+                  placeholder="Search notes, triggers, locations…"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full sm:w-64"
+                />
+              </div>
             </div>
 
             <TabsContent value="all" className="space-y-4 mt-6">
-              {entryCount === 0 ? (
-                <EmptyState />
+              {filteredEntries.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">
+                    No entries match your search or filters.
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-4">
-                  {entries?.map(entry => (
+                  {filteredEntries.map(entry => (
                     <PainEntryCard
                       key={entry.id}
                       entry={entry}
@@ -202,7 +235,8 @@ function App() {
               ) : (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Showing {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+                    Showing {filteredEntries.length}{' '}
+                    {filteredEntries.length === 1 ? 'entry' : 'entries'}
                   </p>
                   {filteredEntries.map(entry => (
                     <PainEntryCard
