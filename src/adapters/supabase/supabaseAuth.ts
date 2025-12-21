@@ -179,8 +179,10 @@ export const supabaseAuth: AuthPort = {
    * Call this before rendering authenticated UI.
    */
   async waitForInitialValidation(): Promise<AuthUser | null> {
-    if (initialValidationPromise) {
-      return initialValidationPromise;
+    // Always await the initial validation promise if it exists
+    // This ensures we wait for server validation to complete
+    if (initialValidationPromise !== null) {
+      return await initialValidationPromise;
     }
     return currentUser;
   },
