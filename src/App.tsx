@@ -30,6 +30,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true)
   const [entries, setEntries] = useState<PainEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [emailConfirmed, setEmailConfirmed] = useState(false)
 
   // Listen for auth state changes
   useEffect(() => {
@@ -42,8 +43,22 @@ function App() {
     // Subscribe to auth changes
     const { unsubscribe } = auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
+      
+      // Handle email confirmation - user just verified their email
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Check if this is from an email confirmation (URL has access_token hash)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        if (hashParams.get('access_token') || hashParams.get('type') === 'signup') {
+          setEmailConfirmed(true)
+          toast.success('Email confirmed! You are now signed in.')
+          // Clean up the URL
+          window.history.replaceState(null, '', window.location.pathname)
+        }
+      }
+      
       if (event === 'SIGNED_OUT') {
         setEntries([])
+        setEmailConfirmed(false)
       }
     })
 
@@ -198,6 +213,16 @@ function App() {
   return (
     <div className="min-h-screen bg-background">
       <Toaster />
+      
+      {/* Email confirmed banner */}
+      {emailConfirmed && (
+        <div className="bg-green-500/10 border-b border-green-500/20 px-4 py-3 text-center">
+          <p className="text-sm text-green-700 dark:text-green-400">
+            ✅ Email confirmed! Welcome to Chronic Pain Diary.
+          </p>
+        </div>
+      )}
+      
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container max-w-4xl mx-auto px-6 py-6 flex items-center justify-between">
           <div>
