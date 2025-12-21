@@ -233,6 +233,17 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Send me a magic link instead
               </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setStage('newUser')}
+                  className="text-primary hover:underline"
+                >
+                  Sign up
+                </button>
+              </p>
             </div>
           )}
 
@@ -304,6 +315,16 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
               </Button>
               <p className="text-xs text-center text-muted-foreground">
                 No password needed — we'll email you a secure link
+              </p>
+              <p className="text-xs text-center text-muted-foreground">
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setStage('existingUser')}
+                  className="text-primary hover:underline"
+                >
+                  Sign in
+                </button>
               </p>
             </div>
           )}

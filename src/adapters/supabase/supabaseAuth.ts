@@ -175,42 +175,62 @@ export const supabaseAuth: AuthPort = {
   },
 
   async checkUserExists(email: string): Promise<{ exists: boolean; error: Error | null }> {
-    // Attempt signUp with a dummy password - if user exists, Supabase returns specific error
-    // This is the recommended approach as there's no direct "check user exists" API
-    const { data, error } = await supabaseClient.auth.signUp({
+    // Use signInWithPassword with a deliberately wrong password
+    // This is SIDE-EFFECT FREE - it never creates users
+    //
+    // Possible responses:
+    // - "Invalid login credentials" = user doesn't exist OR password wrong (can't distinguish easily)
+    // - "Email not confirmed" = user EXISTS but hasn't confirmed email
+    // - Success = user exists and we somehow guessed the password (very unlikely)
+    //
+    // The limitation: for confirmed users, we can't distinguish "doesn't exist" from "wrong password"
+    // Solution: Check the error message patterns Supabase uses
+    
+    const { error } = await supabaseClient.auth.signInWithPassword({
       email,
-      password: 'check-user-exists-dummy-pw-123', // Short dummy password
-      options: {
-        // Don't actually send confirmation email for this check
-        emailRedirectTo: undefined,
-      },
+      password: 'check-existence-probe-' + crypto.randomUUID(),
     });
 
-    if (error) {
-      // "User already registered" means user exists
-      if (error.message.toLowerCase().includes('already registered')) {
-        return { exists: true, error: null };
-      }
-      // Email validation errors - treat as "user doesn't exist" so they can try to sign up
-      // The actual sign up will show the real error
-      if (error.message.toLowerCase().includes('invalid') || 
-          error.message.toLowerCase().includes('email')) {
-        return { exists: false, error: null };
-      }
-      // Other errors (rate limit, etc.)
-      return { exists: false, error: new Error(error.message) };
-    }
-
-    // If signUp succeeded but returned no user or user with no identities, user already exists
-    // (Supabase returns empty identities array for existing unconfirmed users)
-    if (!data.user || (data.user.identities && data.user.identities.length === 0)) {
+    if (!error) {
+      // Somehow signed in (extremely unlikely) - user definitely exists
       return { exists: true, error: null };
     }
 
-    // User was created - this means they didn't exist before
-    // We need to clean up by noting this is a new user
-    // Note: The user is now created but unconfirmed - this is actually fine
-    // because they'll complete signup anyway
+    const msg = error.message.toLowerCase();
+
+    // "Email not confirmed" = user exists but unconfirmed
+    if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
+      return { exists: true, error: null };
+    }
+
+    // Email validation errors
+    if ((msg.includes('invalid') && msg.includes('email')) || 
+        msg.includes('email address') && msg.includes('invalid')) {
+      return { exists: false, error: null };
+    }
+
+    // "Invalid login credentials" - this is ambiguous in Supabase
+    // For security, Supabase returns the same error for:
+    // 1. User doesn't exist
+    // 2. User exists but password is wrong
+    //
+    // We CANNOT distinguish these reliably from client-side.
+    // Best UX approach: assume user MIGHT exist and let them try to sign in.
+    // If they don't have an account, the sign-in will fail and they can sign up.
+    //
+    // For better UX, we'll assume "invalid credentials" means user exists
+    // and show the sign-in form. If they're new, they can click "sign up" link.
+    if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+      // Assume user exists - better to show sign-in than accidentally re-register
+      return { exists: true, error: null };
+    }
+
+    // Rate limiting
+    if (msg.includes('rate') || msg.includes('limit') || msg.includes('too many')) {
+      return { exists: false, error: new Error('Too many attempts. Please wait a moment.') };
+    }
+
+    // Unknown error - assume new user, let them try signup
     return { exists: false, error: null };
   },
 };
