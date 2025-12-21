@@ -44,4 +44,5 @@ export interface AuthPort {
   getSession(): Promise<AuthSession | null>;
   onAuthStateChange(callback: AuthStateChangeCallback): { unsubscribe: () => void };
   getUser(): AuthUser | null;
+  checkUserExists(email: string): Promise<{ exists: boolean; error: Error | null }>;
 }

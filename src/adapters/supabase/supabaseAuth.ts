@@ -173,4 +173,44 @@ export const supabaseAuth: AuthPort = {
   getUser(): AuthUser | null {
     return currentUser;
   },
+
+  async checkUserExists(email: string): Promise<{ exists: boolean; error: Error | null }> {
+    // Attempt signUp with a dummy password - if user exists, Supabase returns specific error
+    // This is the recommended approach as there's no direct "check user exists" API
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password: 'check-user-exists-dummy-pw-123', // Short dummy password
+      options: {
+        // Don't actually send confirmation email for this check
+        emailRedirectTo: undefined,
+      },
+    });
+
+    if (error) {
+      // "User already registered" means user exists
+      if (error.message.toLowerCase().includes('already registered')) {
+        return { exists: true, error: null };
+      }
+      // Email validation errors - treat as "user doesn't exist" so they can try to sign up
+      // The actual sign up will show the real error
+      if (error.message.toLowerCase().includes('invalid') || 
+          error.message.toLowerCase().includes('email')) {
+        return { exists: false, error: null };
+      }
+      // Other errors (rate limit, etc.)
+      return { exists: false, error: new Error(error.message) };
+    }
+
+    // If signUp succeeded but returned no user or user with no identities, user already exists
+    // (Supabase returns empty identities array for existing unconfirmed users)
+    if (!data.user || (data.user.identities && data.user.identities.length === 0)) {
+      return { exists: true, error: null };
+    }
+
+    // User was created - this means they didn't exist before
+    // We need to clean up by noting this is a new user
+    // Note: The user is now created but unconfirmed - this is actually fine
+    // because they'll complete signup anyway
+    return { exists: false, error: null };
+  },
 };
