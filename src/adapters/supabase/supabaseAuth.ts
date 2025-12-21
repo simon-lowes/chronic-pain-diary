@@ -14,28 +14,64 @@ import type {
 } from '@/ports/AuthPort';
 import { supabaseClient } from './supabaseClient';
 
-// Store current user in memory for sync access
+// Store current user in memory - ONLY set after server validation
 let currentUser: AuthUser | null = null;
 
-// Initialize user from existing session
-supabaseClient.auth.getSession().then(({ data: { session } }) => {
-  if (session?.user) {
+// Track if we've completed initial server validation
+let initialValidationComplete = false;
+let initialValidationPromise: Promise<AuthUser | null> | null = null;
+
+/**
+ * Validate session against Supabase server.
+ * This is the ONLY way to know if a user is truly authenticated.
+ * Never trust cached tokens without server validation.
+ */
+async function validateSessionWithServer(): Promise<AuthUser | null> {
+  try {
+    // getUser() makes a server request to validate the JWT
+    // This will fail if user was deleted, token expired, etc.
+    const { data: { user }, error } = await supabaseClient.auth.getUser();
+    
+    if (error || !user) {
+      // Invalid session - clear everything
+      currentUser = null;
+      // Also clear Supabase's local storage to prevent stale state
+      await supabaseClient.auth.signOut();
+      return null;
+    }
+    
     currentUser = {
-      id: session.user.id,
-      email: session.user.email ?? undefined,
+      id: user.id,
+      email: user.email ?? undefined,
     };
+    
+    return currentUser;
+  } catch (error) {
+    console.error('Session validation failed:', error);
+    currentUser = null;
+    await supabaseClient.auth.signOut();
+    return null;
   }
+}
+
+// Start validation immediately but don't block module loading
+initialValidationPromise = validateSessionWithServer().finally(() => {
+  initialValidationComplete = true;
 });
 
 // Keep user in sync with auth state changes
-supabaseClient.auth.onAuthStateChange((_event, session) => {
-  if (session?.user) {
-    currentUser = {
-      id: session.user.id,
-      email: session.user.email ?? undefined,
-    };
-  } else {
+// Only trust this AFTER we've done initial server validation
+supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+  // For SIGNED_OUT events, always clear immediately
+  if (!session) {
     currentUser = null;
+    return;
+  }
+  
+  // For SIGNED_IN or TOKEN_REFRESHED, validate with server
+  // This prevents stale cached sessions from being trusted
+  if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
+    await validateSessionWithServer();
   }
 });
 
@@ -116,19 +152,14 @@ export const supabaseAuth: AuthPort = {
   },
 
   async getSession(): Promise<AuthSession | null> {
-    // Use getUser() to validate session against the server
-    // This makes a network request and will fail if user is deleted
-    // Unlike getSession() which only reads cached data
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      // Session is invalid (user deleted, token expired, etc.)
-      // Clear any stale local state
-      currentUser = null;
+    // ALWAYS validate against server - never trust cache
+    const validatedUser = await validateSessionWithServer();
+    
+    if (!validatedUser) {
       return null;
     }
 
-    // User is valid, now get session for tokens
+    // User is valid, get session for tokens
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
     if (sessionError || !session) {
@@ -136,20 +167,22 @@ export const supabaseAuth: AuthPort = {
       return null;
     }
 
-    // Update current user
-    currentUser = {
-      id: user.id,
-      email: user.email ?? undefined,
-    };
-
     return {
-      user: {
-        id: user.id,
-        email: user.email ?? undefined,
-      },
+      user: validatedUser,
       accessToken: session.access_token,
       expiresAt: session.expires_at,
     };
+  },
+
+  /**
+   * Wait for initial session validation to complete.
+   * Call this before rendering authenticated UI.
+   */
+  async waitForInitialValidation(): Promise<AuthUser | null> {
+    if (initialValidationPromise) {
+      return initialValidationPromise;
+    }
+    return currentUser;
   },
 
   onAuthStateChange(callback: AuthStateChangeCallback) {

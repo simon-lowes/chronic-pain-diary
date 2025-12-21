@@ -26,7 +26,9 @@ import { BODY_LOCATIONS } from '@/types/pain-entry'
 import type { AuthUser } from '@/ports/AuthPort'
 
 function App() {
-  const [user, setUser] = useState<AuthUser | null>(auth.getUser())
+  // CRITICAL: Start with null user, not cached value
+  // Only trust user state AFTER server validation completes
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [entries, setEntries] = useState<PainEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -34,22 +36,31 @@ function App() {
 
   // Listen for auth state changes
   useEffect(() => {
-    // Validate session against server on load
-    // This will fail if user was deleted, token expired, etc.
+    // CRITICAL: Validate session against Supabase server before trusting any state
+    // This catches: deleted users, expired tokens, revoked sessions, etc.
     const validateAndInitAuth = async () => {
       try {
+        console.log('[Auth] Starting server-side session validation...')
+        
+        // Wait for the auth adapter's initial validation to complete
+        // This makes a server request to verify the JWT is still valid
         const session = await auth.getSession()
         
         if (!session) {
-          // No valid session - ensure we're signed out cleanly
+          console.log('[Auth] No valid session - user not authenticated')
           setUser(null)
         } else {
+          console.log('[Auth] Session validated successfully:', session.user.email)
           setUser(session.user)
         }
       } catch (error) {
-        console.error('Auth validation failed:', error)
-        // Force sign out to clear any stale tokens
-        await auth.signOut()
+        console.error('[Auth] Session validation failed:', error)
+        // Force sign out to clear any stale tokens from localStorage
+        try {
+          await auth.signOut()
+        } catch (e) {
+          // Ignore signOut errors
+        }
         setUser(null)
       } finally {
         setAuthLoading(false)
@@ -247,11 +258,12 @@ function App() {
     }
   }
 
-  // Show loading while checking auth
+  // Show loading while validating auth with server
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Loading…
+      <div className="min-h-screen flex flex-col items-center justify-center text-muted-foreground gap-2">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span>Validating session…</span>
       </div>
     )
   }
