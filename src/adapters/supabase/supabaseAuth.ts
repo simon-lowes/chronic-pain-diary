@@ -172,25 +172,7 @@ export const supabaseAuth: AuthPort = {
   },
 
   async resend(params: ResendParams) {
-    // Build the resend parameters based on the type
-    const resendParams: any = {
-      type: params.type,
-    };
-
-    // Add email or phone based on what's provided
-    if (params.email) {
-      resendParams.email = params.email;
-    }
-    if (params.phone) {
-      resendParams.phone = params.phone;
-    }
-
-    // Add options if provided
-    if (params.options) {
-      resendParams.options = params.options;
-    }
-
-    const { error } = await supabaseClient.auth.resend(resendParams);
+    const { error } = await supabaseClient.auth.resend(params as any);
 
     if (error) {
       return { error: new Error(error.message) };

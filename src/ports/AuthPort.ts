@@ -45,14 +45,20 @@ export interface UpdatePasswordParams {
   password: string;
 }
 
-export interface ResendParams {
-  type: 'signup' | 'email_change' | 'sms' | 'phone_change';
-  email?: string;
-  phone?: string;
+export interface ResendEmailParams {
+  type: 'signup' | 'email_change';
+  email: string;
   options?: {
     emailRedirectTo?: string;
   };
 }
+
+export interface ResendPhoneParams {
+  type: 'sms' | 'phone_change';
+  phone: string;
+}
+
+export type ResendParams = ResendEmailParams | ResendPhoneParams;
 
 export interface AuthPort {
   signUp(params: SignUpParams): Promise<{ user: AuthUser | null; error: Error | null }>;
