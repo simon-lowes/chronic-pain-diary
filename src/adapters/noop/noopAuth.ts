@@ -3,7 +3,17 @@
  * Returns signed-out state for all operations
  */
 
-import type { AuthPort, AuthUser, SignUpParams, SignInParams, AuthStateChangeCallback } from '@/ports/AuthPort';
+import type { 
+  AuthPort, 
+  AuthUser, 
+  SignUpParams, 
+  SignInParams, 
+  MagicLinkParams,
+  ResetPasswordParams,
+  UpdatePasswordParams,
+  ResendConfirmationEmailParams,
+  AuthStateChangeCallback 
+} from '@/ports/AuthPort';
 
 export const noopAuth: AuthPort = {
   async signUp(_params: SignUpParams) {
@@ -18,6 +28,22 @@ export const noopAuth: AuthPort = {
       user: null,
       error: new Error('Authentication not configured'),
     };
+  },
+
+  async signInWithMagicLink(_params: MagicLinkParams) {
+    return { error: new Error('Authentication not configured') };
+  },
+
+  async resetPassword(_params: ResetPasswordParams) {
+    return { error: new Error('Authentication not configured') };
+  },
+
+  async updatePassword(_params: UpdatePasswordParams) {
+    return { error: new Error('Authentication not configured') };
+  },
+
+  async resendConfirmationEmail(_params: ResendConfirmationEmailParams) {
+    return { error: new Error('Authentication not configured') };
   },
 
   async signOut() {
@@ -36,6 +62,14 @@ export const noopAuth: AuthPort = {
   },
 
   getUser(): AuthUser | null {
+    return null;
+  },
+
+  async checkUserExists(_email: string) {
+    return { exists: false, error: new Error('Authentication not configured') };
+  },
+
+  async waitForInitialValidation(): Promise<AuthUser | null> {
     return null;
   },
 };

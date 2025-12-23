@@ -218,10 +218,9 @@ export function AuthForm({ onSuccess, initialStage = 'signIn' }: AuthFormProps) 
         const { error } = await auth.resetPassword({ email });
         if (error) throw error;
       } else {
-        // Re-send signup confirmation by re-signing up
-        // Supabase will resend the confirmation email
-        const { error } = await auth.signUp({ email, password: 'resend-trigger' });
-        if (error && !error.message.includes('already registered')) throw error;
+        // Re-send signup confirmation email
+        const { error } = await auth.resendConfirmationEmail({ email, type: 'signup' });
+        if (error) throw error;
       }
 
       toast.success('Email sent!');
