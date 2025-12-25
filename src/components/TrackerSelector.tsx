@@ -18,6 +18,13 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -345,6 +352,7 @@ export function TrackerSelector({
   onTrackerChange, 
   className 
 }: Readonly<TrackerSelectorProps>) {
+  const isMobile = useIsMobile();
   const [trackers, setTrackers] = useState<Tracker[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -359,6 +367,7 @@ export function TrackerSelector({
   
   // Delete tracker states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteDrawerOpen, setDeleteDrawerOpen] = useState(false);
   const [trackerToDelete, setTrackerToDelete] = useState<Tracker | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -618,32 +627,70 @@ export function TrackerSelector({
             <span>New Tracker</span>
           </DropdownMenuItem>
           
-          {/* Delete submenu - only show if more than one tracker */}
+          {/* Delete option - only show if more than one tracker */}
           {trackers.length > 1 && (
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="flex items-center gap-2 text-destructive">
+            isMobile ? (
+              // On mobile, open a drawer instead of submenu
+              <DropdownMenuItem
+                onClick={() => setDeleteDrawerOpen(true)}
+                className="flex items-center gap-2 text-destructive"
+              >
                 <Trash2 className="h-4 w-4" />
                 <span>Delete Tracker</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {trackers.map((t) => (
-                  <DropdownMenuItem
-                    key={t.id}
-                    onClick={() => {
-                      setTrackerToDelete(t);
-                      setDeleteDialogOpen(true);
-                    }}
-                    className="flex items-center gap-2 text-destructive"
-                  >
-                    {getTrackerIcon(t)}
-                    <span className="truncate">{t.name}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+              </DropdownMenuItem>
+            ) : (
+              // On desktop, use submenu with proper width
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="flex items-center gap-2 text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete Tracker</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="min-w-[200px]">
+                  {trackers.map((t) => (
+                    <DropdownMenuItem
+                      key={t.id}
+                      onClick={() => {
+                        setTrackerToDelete(t);
+                        setDeleteDialogOpen(true);
+                      }}
+                      className="flex items-center gap-2 text-destructive"
+                    >
+                      {getTrackerIcon(t)}
+                      <span className="truncate">{t.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            )
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Delete Tracker Drawer (mobile only) */}
+      <Drawer open={deleteDrawerOpen} onOpenChange={setDeleteDrawerOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Delete Tracker</DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-6 space-y-2">
+            {trackers.map((t) => (
+              <Button
+                key={t.id}
+                variant="ghost"
+                onClick={() => {
+                  setTrackerToDelete(t);
+                  setDeleteDrawerOpen(false);
+                  setDeleteDialogOpen(true);
+                }}
+                className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                {getTrackerIcon(t)}
+                <span>{t.name}</span>
+              </Button>
+            ))}
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Create Tracker Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={(open) => {
