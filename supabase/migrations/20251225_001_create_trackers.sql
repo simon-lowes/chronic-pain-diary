@@ -48,7 +48,29 @@ ALTER TABLE pain_entries
 -- 4. Create default "Chronic Pain" tracker for existing users and migrate entries
 -- =============================================================================
 
--- Function to create default tracker and migrate entries for a user
+-- Single source of truth for default tracker creation (DRY)
+CREATE OR REPLACE FUNCTION create_default_tracker(p_user_id UUID)
+RETURNS UUID AS $$
+DECLARE
+  v_tracker_id UUID;
+BEGIN
+  INSERT INTO trackers (user_id, name, type, preset_id, icon, color, is_default)
+  VALUES (
+    p_user_id, 
+    'Chronic Pain', 
+    'preset', 
+    'chronic_pain',
+    'activity',
+    '#ef4444', -- red-500
+    true
+  )
+  RETURNING id INTO v_tracker_id;
+  
+  RETURN v_tracker_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to migrate existing users to trackers
 CREATE OR REPLACE FUNCTION migrate_user_to_trackers(p_user_id UUID)
 RETURNS UUID AS $$
 DECLARE
@@ -62,17 +84,7 @@ BEGIN
   
   -- If no default tracker exists, create one
   IF v_tracker_id IS NULL THEN
-    INSERT INTO trackers (user_id, name, type, preset_id, icon, color, is_default)
-    VALUES (
-      p_user_id, 
-      'Chronic Pain', 
-      'preset', 
-      'chronic_pain',
-      'activity',
-      '#ef4444', -- red-500
-      true
-    )
-    RETURNING id INTO v_tracker_id;
+    v_tracker_id := create_default_tracker(p_user_id);
   END IF;
   
   -- Migrate all entries without a tracker_id to the default tracker
@@ -101,16 +113,7 @@ END $$;
 CREATE OR REPLACE FUNCTION create_default_tracker_for_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO trackers (user_id, name, type, preset_id, icon, color, is_default)
-  VALUES (
-    NEW.id, 
-    'Chronic Pain', 
-    'preset', 
-    'chronic_pain',
-    'activity',
-    '#ef4444',
-    true
-  );
+  PERFORM create_default_tracker(NEW.id);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

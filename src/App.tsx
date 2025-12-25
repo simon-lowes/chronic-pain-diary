@@ -22,7 +22,7 @@ import {
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 
-import { PainEntry } from '@/types/pain-entry'
+import { PainEntry, BODY_LOCATIONS } from '@/types/pain-entry'
 import type { Tracker, TrackerPresetId } from '@/types/tracker'
 import { PainEntryForm } from '@/components/PainEntryForm'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -31,7 +31,6 @@ import { EmptyState } from '@/components/EmptyState'
 import { AuthForm } from '@/components/AuthForm'
 import { TrackerSelector } from '@/components/TrackerSelector'
 import { filterEntriesByDateRange, filterEntriesByLocation } from '@/lib/pain-utils'
-import { BODY_LOCATIONS } from '@/types/pain-entry'
 import { getTrackerConfig } from '@/types/tracker-config'
 import type { AuthUser } from '@/ports/AuthPort'
 
