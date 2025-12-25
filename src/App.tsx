@@ -1,5 +1,5 @@
 import { db, auth, tracker as trackerService } from '@/runtime/appRuntime'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, List, Calendar, SignOut } from '@phosphor-icons/react'
 
@@ -30,9 +30,14 @@ import { PainEntryCard } from '@/components/PainEntryCard'
 import { EmptyState } from '@/components/EmptyState'
 import { AuthForm } from '@/components/AuthForm'
 import { TrackerSelector } from '@/components/TrackerSelector'
+import { WelcomeScreen } from '@/components/WelcomeScreen'
+import { Dashboard } from '@/components/Dashboard'
 import { filterEntriesByDateRange, filterEntriesByLocation } from '@/lib/pain-utils'
 import { getTrackerConfig } from '@/types/tracker-config'
 import type { AuthUser } from '@/ports/AuthPort'
+
+/** View states for the main app */
+type AppView = 'welcome' | 'dashboard' | 'tracker';
 
 /**
  * Validates session against Supabase server before trusting any state.
@@ -87,6 +92,11 @@ function App() {
   const [updatingPassword, setUpdatingPassword] = useState(false)
   const [currentTracker, setCurrentTracker] = useState<Tracker | null>(null)
   const [aboutOpen, setAboutOpen] = useState(false)
+  
+  // Multi-tracker and view state
+  const [trackers, setTrackers] = useState<Tracker[]>([])
+  const [trackersLoading, setTrackersLoading] = useState(true)
+  const [currentView, setCurrentView] = useState<AppView>('dashboard')
 
   // Listen for auth state changes
   useEffect(() => {
@@ -120,24 +130,40 @@ function App() {
     return () => unsubscribe()
   }, [])
 
-  // Load entries when user is authenticated and tracker is selected
+  // Load all trackers when user is authenticated
   useEffect(() => {
     if (!user) {
       setLoading(false)
+      setTrackersLoading(false)
+      setTrackers([])
+      setCurrentView('dashboard')
       return
     }
 
-    // Ensure user has a default tracker
-    const ensureTracker = async () => {
-      if (!currentTracker) {
-        const result = await trackerService.ensureDefaultTracker()
-        if (result.data) {
-          setCurrentTracker(result.data)
+    const loadTrackers = async () => {
+      setTrackersLoading(true)
+      const result = await trackerService.getTrackers()
+      
+      if (result.data) {
+        setTrackers(result.data)
+        
+        // Determine initial view based on tracker count
+        if (result.data.length === 0) {
+          setCurrentView('welcome')
+          setCurrentTracker(null)
+        } else {
+          // If we have a current tracker, stay in tracker view
+          // Otherwise go to dashboard
+          if (!currentTracker) {
+            setCurrentView('dashboard')
+          }
         }
       }
+      setTrackersLoading(false)
     }
-    ensureTracker()
-  }, [user, currentTracker])
+    
+    loadTrackers()
+  }, [user])
 
   // Load entries when tracker changes
   useEffect(() => {
@@ -386,6 +412,27 @@ function App() {
     setConfirmPassword('')
   }
 
+  // Navigation handlers
+  const handleGoHome = useCallback(() => {
+    if (trackers.length === 0) {
+      setCurrentView('welcome')
+    } else {
+      setCurrentView('dashboard')
+    }
+    setCurrentTracker(null)
+  }, [trackers.length])
+
+  const handleTrackerSelect = useCallback((tracker: Tracker) => {
+    setCurrentTracker(tracker)
+    setCurrentView('tracker')
+  }, [])
+
+  const handleTrackerCreated = useCallback((tracker: Tracker) => {
+    setTrackers(prev => [...prev, tracker])
+    setCurrentTracker(tracker)
+    setCurrentView('tracker')
+  }, [])
+
   // Show loading while validating auth with server
   if (authLoading) {
     return (
@@ -490,23 +537,26 @@ function App() {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container max-w-4xl mx-auto px-6 py-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <button 
-              onClick={() => setAboutOpen(true)}
-              className="text-left hover:opacity-80 transition-opacity group"
-            >
+            <div className="text-left">
               <div className="inline-flex items-start">
-                <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-                  Baseline
-                </h1>
+                <button 
+                  onClick={handleGoHome}
+                  className="hover:opacity-80 transition-opacity"
+                >
+                  <h1 className="text-3xl font-semibold text-foreground tracking-tight">
+                    Baseline
+                  </h1>
+                </button>
                 <TooltipProvider delayDuration={200}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span 
-                        className="-mt-0.5 ml-1 w-5 h-5 rounded-full border border-primary/40 bg-primary/10 text-primary flex items-center justify-center text-[11px] font-semibold group-hover:bg-primary/20 group-hover:border-primary/60 transition-all cursor-pointer"
+                      <button 
+                        onClick={() => setAboutOpen(true)}
+                        className="-mt-0.5 ml-1 w-5 h-5 rounded-full border border-primary/40 bg-primary/10 text-primary flex items-center justify-center text-[11px] font-semibold hover:bg-primary/20 hover:border-primary/60 transition-all cursor-pointer"
                         aria-label="About Baseline"
                       >
                         i
-                      </span>
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-[220px] text-xs">
                       <p>Track health patterns with AI-powered insights. Click for more info.</p>
@@ -517,7 +567,7 @@ function App() {
               <p className="text-muted-foreground mt-1">
                 Know your baseline, spot the changes
               </p>
-            </button>
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -529,50 +579,93 @@ function App() {
             </Button>
           </div>
           
-          {/* Tracker Selector */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Tracking:</span>
-            <TrackerSelector
-              currentTracker={currentTracker}
-              onTrackerChange={setCurrentTracker}
-            />
-          </div>
+          {/* Tracker Selector - only show when in tracker view */}
+          {currentView === 'tracker' && currentTracker && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Tracking:</span>
+              <TrackerSelector
+                currentTracker={currentTracker}
+                onTrackerChange={handleTrackerSelect}
+              />
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="container max-w-4xl mx-auto px-6 py-8 space-y-8">
-        <AnimatePresence mode="wait">
-          {showForm ? (
-            <motion.div
-              key="form"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <PainEntryForm
-                tracker={currentTracker}
-                editEntry={editingEntry}
-                onSubmit={editingEntry ? handleUpdateEntry : handleAddEntry}
-                onCancel={() => {
-                  setShowForm(false)
-                  setEditingEntry(null)
-                }}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="button"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Button
-                onClick={() => setShowForm(true)}
-                size="lg"
-                className="w-full sm:w-auto gap-2 bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
-              >
+      {/* Main content with view transitions */}
+      <AnimatePresence mode="wait">
+        {/* Welcome screen for new users */}
+        {currentView === 'welcome' && (
+          <motion.div
+            key="welcome"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <WelcomeScreen onTrackerCreated={handleTrackerCreated} />
+          </motion.div>
+        )}
+
+        {/* Dashboard for returning users */}
+        {currentView === 'dashboard' && (
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Dashboard 
+              trackers={trackers}
+              onTrackerSelect={handleTrackerSelect}
+              onTrackerCreated={handleTrackerCreated}
+            />
+          </motion.div>
+        )}
+
+        {/* Tracker view */}
+        {currentView === 'tracker' && currentTracker && (
+          <motion.div
+            key="tracker"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <main className="container max-w-4xl mx-auto px-6 py-8 space-y-8">
+              <AnimatePresence mode="wait">
+                {showForm ? (
+                  <motion.div
+                    key="form"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <PainEntryForm
+                      tracker={currentTracker}
+                      editEntry={editingEntry}
+                      onSubmit={editingEntry ? handleUpdateEntry : handleAddEntry}
+                      onCancel={() => {
+                        setShowForm(false)
+                        setEditingEntry(null)
+                      }}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="button"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Button
+                      onClick={() => setShowForm(true)}
+                      size="lg"
+                      className="w-full sm:w-auto gap-2 bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
+                    >
                 <Plus size={20} weight="bold" />
                 {getTrackerConfig(currentTracker?.preset_id as TrackerPresetId | null, currentTracker?.generated_config).addButtonLabel}
               </Button>
@@ -696,7 +789,10 @@ function App() {
         )}
 
         {entryCount === 0 && !showForm && <EmptyState tracker={currentTracker} />}
-      </main>
+            </main>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <footer className="border-t mt-16">
         <div className="container max-w-4xl mx-auto px-6 py-6">
