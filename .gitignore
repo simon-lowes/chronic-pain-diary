@@ -25,6 +25,9 @@ dist-ssr
 *.sw?
 
 .env
+# Ignore all environment variants and Supabase CLI env
+.env.*
+supabase/.env
 **/agent-eval-report*
 packages
 pids
