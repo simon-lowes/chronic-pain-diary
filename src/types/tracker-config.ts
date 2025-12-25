@@ -51,6 +51,12 @@ const LOW_BAD_COLORS: [string, string, string, string, string] = [
   '#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'
 ]; // red to green (low = bad)
 
+// Common message templates (DRY)
+const deleteConfirm = (entryType?: string) =>
+  entryType
+    ? `Are you sure you want to delete this ${entryType} entry? This action cannot be undone.`
+    : 'Are you sure you want to delete this entry? This action cannot be undone.';
+
 // =============================================================================
 // TrackerConfig Interface
 // =============================================================================
@@ -108,7 +114,7 @@ const chronicPainConfig: TrackerConfig = {
     'Share your history with doctors',
   ],
   entryTitle: 'Pain Entry Details',
-  deleteConfirmMessage: 'Are you sure you want to delete this pain entry? This action cannot be undone.',
+  deleteConfirmMessage: deleteConfirm('pain'),
   locations: [
     { value: 'head', label: 'Head' },
     { value: 'neck', label: 'Neck' },
@@ -152,7 +158,7 @@ const moodConfig: TrackerConfig = {
     'Build self-awareness over time',
   ],
   entryTitle: 'Mood Entry Details',
-  deleteConfirmMessage: 'Are you sure you want to delete this mood entry? This action cannot be undone.',
+  deleteConfirmMessage: deleteConfirm('mood'),
   locations: [
     { value: 'anxiety', label: 'Anxiety' },
     { value: 'depression', label: 'Depression' },
@@ -192,7 +198,7 @@ const sleepConfig: TrackerConfig = {
     'Improve your sleep hygiene',
   ],
   entryTitle: 'Sleep Entry Details',
-  deleteConfirmMessage: 'Are you sure you want to delete this sleep entry? This action cannot be undone.',
+  deleteConfirmMessage: deleteConfirm('sleep'),
   locations: [
     { value: 'insomnia', label: 'Insomnia' },
     { value: 'restful', label: 'Restful' },
@@ -231,7 +237,7 @@ const menstrualConfig: TrackerConfig = {
     'Share patterns with healthcare providers',
   ],
   entryTitle: 'Cycle Entry Details',
-  deleteConfirmMessage: 'Are you sure you want to delete this cycle entry? This action cannot be undone.',
+  deleteConfirmMessage: deleteConfirm('cycle'),
   locations: [
     { value: 'period', label: 'Period' },
     { value: 'ovulation', label: 'Ovulation' },
@@ -271,7 +277,7 @@ const medicationConfig: TrackerConfig = {
     'Keep records for doctor visits',
   ],
   entryTitle: 'Medication Entry Details',
-  deleteConfirmMessage: 'Are you sure you want to delete this medication entry? This action cannot be undone.',
+  deleteConfirmMessage: deleteConfirm('medication'),
   locations: [
     { value: 'prescription', label: 'Prescription' },
     { value: 'otc', label: 'Over-the-Counter' },
@@ -310,7 +316,7 @@ const exerciseConfig: TrackerConfig = {
     'Build healthy habits',
   ],
   entryTitle: 'Exercise Entry Details',
-  deleteConfirmMessage: 'Are you sure you want to delete this exercise entry? This action cannot be undone.',
+  deleteConfirmMessage: deleteConfirm('exercise'),
   locations: [
     { value: 'cardio', label: 'Cardio' },
     { value: 'strength', label: 'Strength' },
@@ -351,7 +357,7 @@ const defaultConfig: TrackerConfig = {
     'Keep a personal record',
   ],
   entryTitle: 'Entry Details',
-  deleteConfirmMessage: 'Are you sure you want to delete this entry? This action cannot be undone.',
+  deleteConfirmMessage: deleteConfirm(),
   locations: [
     { value: 'general', label: 'General' },
     { value: 'positive', label: 'Positive' },
