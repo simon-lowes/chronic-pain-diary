@@ -433,6 +433,14 @@ function App() {
     setCurrentView('tracker')
   }, [])
 
+  const handleTrackerDeleted = useCallback((trackerId: string) => {
+    setTrackers(prev => prev.filter(t => t.id !== trackerId))
+    // If deleted the current tracker, reset
+    if (currentTracker?.id === trackerId) {
+      setCurrentTracker(null)
+    }
+  }, [currentTracker?.id])
+
   // Show loading while validating auth with server
   if (authLoading) {
     return (
@@ -620,6 +628,7 @@ function App() {
               trackers={trackers}
               onTrackerSelect={handleTrackerSelect}
               onTrackerCreated={handleTrackerCreated}
+              onTrackerDeleted={handleTrackerDeleted}
             />
           </motion.div>
         )}

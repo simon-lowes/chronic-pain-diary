@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Activity, Plus, Loader2, Sparkles } from 'lucide-react';
+import { Activity, Plus, Loader2, Sparkles, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { Tracker, TrackerPresetId } from '@/types/tracker';
 import { TRACKER_PRESETS } from '@/types/tracker';
 import type { GeneratedTrackerConfig } from '@/types/generated-config';
@@ -36,12 +46,14 @@ interface DashboardProps {
   trackers: Tracker[];
   onTrackerSelect: (tracker: Tracker) => void;
   onTrackerCreated: (tracker: Tracker) => void;
+  onTrackerDeleted: (trackerId: string) => void;
 }
 
 export function Dashboard({ 
   trackers, 
   onTrackerSelect,
   onTrackerCreated,
+  onTrackerDeleted,
 }: Readonly<DashboardProps>) {
   const [stats, setStats] = useState<Record<string, TrackerStats>>({});
   const [loadingStats, setLoadingStats] = useState(true);
@@ -49,6 +61,9 @@ export function Dashboard({
   const [customName, setCustomName] = useState('');
   const [creating, setCreating] = useState(false);
   const [creatingPreset, setCreatingPreset] = useState<TrackerPresetId | null>(null);
+  const [trackerToDelete, setTrackerToDelete] = useState<Tracker | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Load entry counts for each tracker
   useEffect(() => {
@@ -175,6 +190,34 @@ export function Dashboard({
     }
   }
 
+  async function handleDeleteTracker() {
+    if (!trackerToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const result = await trackerService.deleteTracker(trackerToDelete.id);
+      
+      if (result.error) {
+        toast.error(`Failed to delete: ${result.error.message}`);
+      } else {
+        toast.success(`Deleted "${trackerToDelete.name}" tracker`);
+        onTrackerDeleted(trackerToDelete.id);
+      }
+    } catch {
+      toast.error('Something went wrong');
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setTrackerToDelete(null);
+    }
+  }
+
+  function openDeleteDialog(e: React.MouseEvent, tracker: Tracker) {
+    e.stopPropagation(); // Prevent card click
+    setTrackerToDelete(tracker);
+    setDeleteDialogOpen(true);
+  }
+
   return (
     <div className="py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -219,23 +262,34 @@ export function Dashboard({
                     </div>
                   </div>
 
-                  {/* Stats */}
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    {isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>Loading...</span>
-                      </div>
-                    ) : (
-                      <>
-                        <p>
-                          {trackerStats?.entryCount ?? 0} {(trackerStats?.entryCount ?? 0) === 1 ? 'entry' : 'entries'}
-                        </p>
-                        <p className="text-xs">
-                          {formatLastEntry(trackerStats?.lastEntryDate ?? null)}
-                        </p>
-                      </>
-                    )}
+                  {/* Stats and delete */}
+                  <div className="flex items-end justify-between">
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Loading...</span>
+                        </div>
+                      ) : (
+                        <>
+                          <p>
+                            {trackerStats?.entryCount ?? 0} {(trackerStats?.entryCount ?? 0) === 1 ? 'entry' : 'entries'}
+                          </p>
+                          <p className="text-xs">
+                            {formatLastEntry(trackerStats?.lastEntryDate ?? null)}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* Delete button */}
+                    <button
+                      onClick={(e) => openDeleteDialog(e, tracker)}
+                      className="p-1.5 rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      aria-label={`Delete ${tracker.name}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </CardContent>
               </Card>
@@ -317,6 +371,43 @@ export function Dashboard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Delete "{trackerToDelete?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>This action <strong>cannot be undone</strong>. This will permanently delete:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>The "{trackerToDelete?.name}" tracker</li>
+                <li>All entries associated with this tracker</li>
+                <li>All notes, tags, and history data</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTracker}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Yes, Delete Forever
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
