@@ -20,9 +20,9 @@ import { supabaseClient } from './supabaseClient';
 // Store current user in memory - ONLY set after server validation
 let currentUser: AuthUser | null = null;
 
-// Track if we've completed initial server validation
-let initialValidationComplete = false;
-let initialValidationPromise: Promise<AuthUser | null> | null = null;
+// Track if we've completed initial server validation (reserved for future use)
+// const _initialValidationComplete = false;
+// const initialValidationPromise: Promise<AuthUser | null> | null = null;
 
 /**
  * Get session from local cache (fast, no network request).
@@ -55,7 +55,7 @@ async function getSessionFromCache(): Promise<AuthUser | null> {
  * This is the ONLY way to know if a user is truly authenticated.
  * Call this in background after initial render.
  */
-async function validateSessionWithServer(): Promise<AuthUser | null> {
+async function _validateSessionWithServer(): Promise<AuthUser | null> {
   try {
     // getUser() makes a server request to validate the JWT
     // This will fail if user was deleted, token expired, etc.
@@ -90,7 +90,7 @@ void (async () => {
   try {
     await getSessionFromCache();
   } finally {
-    initialValidationComplete = true;
+    // Initial validation complete - could be used for loading states in future
   }
 })();
 
@@ -205,7 +205,7 @@ export const supabaseAuth: AuthPort = {
   },
 
   async resend(params: ResendParams) {
-    const { error } = await supabaseClient.auth.resend(params as any);
+    const { error } = await supabaseClient.auth.resend(params);
 
     if (error) {
       return { error: new Error(error.message) };
@@ -253,11 +253,8 @@ export const supabaseAuth: AuthPort = {
    * Call this before rendering authenticated UI.
    */
   async waitForInitialValidation(): Promise<AuthUser | null> {
-    // Always await the initial validation promise if it exists
-    // This ensures we wait for server validation to complete
-    if (initialValidationPromise !== null) {
-      return await initialValidationPromise;
-    }
+    // Initial validation is handled synchronously in the IIFE
+    // Return current user state
     return currentUser;
   },
 

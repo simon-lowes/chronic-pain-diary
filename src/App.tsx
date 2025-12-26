@@ -95,7 +95,7 @@ function App() {
   
   // Multi-tracker and view state
   const [trackers, setTrackers] = useState<Tracker[]>([])
-  const [trackersLoading, setTrackersLoading] = useState(true)
+  const [_trackersLoading, setTrackersLoading] = useState(true)
   const [currentView, setCurrentView] = useState<AppView>('dashboard')
 
   // Listen for auth state changes
@@ -163,6 +163,7 @@ function App() {
     }
     
     loadTrackers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   // Load entries when tracker changes

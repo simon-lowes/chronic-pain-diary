@@ -119,6 +119,7 @@ function ChartTooltipContent({
 }: Omit<ComponentProps<typeof RechartsPrimitive.Tooltip>, 'content'> &
   ComponentProps<"div"> & {
     active?: boolean
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload?: any[]
     label?: string | number
     hideLabel?: boolean
@@ -258,6 +259,7 @@ function ChartLegendContent({
   verticalAlign = "bottom",
   nameKey,
 }: ComponentProps<"div"> & {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload?: any[]
     verticalAlign?: "top" | "bottom"
     hideIcon?: boolean

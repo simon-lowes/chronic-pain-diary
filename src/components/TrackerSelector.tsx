@@ -6,7 +6,7 @@
  * Includes AI-powered context generation for custom trackers.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Activity, Plus, ChevronDown, Check, Sparkles, Loader2, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -372,11 +372,7 @@ export function TrackerSelector({
   const [deleting, setDeleting] = useState(false);
 
   // Load trackers on mount
-  useEffect(() => {
-    loadTrackers();
-  }, []);
-
-  async function loadTrackers() {
+  const loadTrackers = useCallback(async () => {
     setLoading(true);
     try {
       console.log('[TrackerSelector] Loading trackers...');
@@ -406,7 +402,11 @@ export function TrackerSelector({
       console.error('Failed to load trackers:', err);
     }
     setLoading(false);
-  }
+  }, [currentTracker, onTrackerChange]);
+
+  useEffect(() => {
+    loadTrackers();
+  }, [loadTrackers]);
 
   async function handleCreateTracker() {
     if (!newTrackerName.trim()) {

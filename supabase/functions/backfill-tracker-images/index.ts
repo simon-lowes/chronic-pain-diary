@@ -1,5 +1,5 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 // Rate limiting configuration
-const RATE_LIMIT_PER_MINUTE = 10; // Max images to generate per minute
+const _RATE_LIMIT_PER_MINUTE = 10; // Max images to generate per minute
 const RATE_LIMIT_DELAY_MS = 6000; // 6 seconds between image generations
 
 interface BackfillProgress {
@@ -37,7 +37,7 @@ async function rateLimit(): Promise<void> {
 async function generateImageForTracker(
   trackerId: string, 
   trackerName: string,
-  supabase: any,
+  supabase: SupabaseClient,
   geminiApiKey: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
