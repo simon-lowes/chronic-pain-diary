@@ -296,10 +296,10 @@ function App() {
       ...data,
     }
 
-    const { error } = await db.update<PainEntry>('pain_entries', {
-      id: editingEntry.id,
-      ...data,
-    })
+    const { error } = await db.update<PainEntry>('pain_entries', 
+      { id: editingEntry.id },
+      data
+    )
 
     if (error) {
       console.error(error)
