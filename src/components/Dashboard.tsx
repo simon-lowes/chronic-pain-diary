@@ -321,7 +321,10 @@ export function Dashboard({
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                      <h3 
+                        className="font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors"
+                        title={tracker.name}
+                      >
                         {tracker.name}
                       </h3>
                     </div>
