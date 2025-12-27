@@ -96,12 +96,18 @@ function Carousel({
 
   useEffect(() => {
     if (!api) return
-    onSelect(api)
+    
+    // Set up event listeners
     api.on("reInit", onSelect)
     api.on("select", onSelect)
+    
+    // Initialize state - this is intentional to sync with the carousel API
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    onSelect(api)
 
     return () => {
       api?.off("select", onSelect)
+      api?.off("reInit", onSelect)
     }
   }, [api, onSelect])
 

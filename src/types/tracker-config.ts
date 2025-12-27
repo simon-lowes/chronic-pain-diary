@@ -88,6 +88,7 @@ export interface TrackerConfig {
   // Options
   locations: { value: string; label: string }[];
   triggers: string[];
+  suggestedHashtags?: string[];
   
   // Intensity helpers
   getIntensityLabel: (value: number) => string;
@@ -378,8 +379,6 @@ const configMap: Record<TrackerPresetId, TrackerConfig> = {
   medication: medicationConfig,
   exercise: exerciseConfig,
 };
-
-import type { GeneratedTrackerConfig, IntensityScale } from './generated-config';
 
 /**
  * Get intensity labels based on scale type
