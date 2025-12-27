@@ -58,7 +58,7 @@ export async function generateTrackerImage(
       success: true,
       imageUrl: data.imageUrl,
       storagePath: data.storagePath,
-      modelName: data.modelName || 'gemini-2.5-flash-image',
+      modelName: data.modelName || 'gemini-3-pro-image-preview',
     };
 
   } catch (error) {

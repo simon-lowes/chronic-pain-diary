@@ -53,10 +53,10 @@ Style requirements:
     
 The icon should visually represent the concept of "${trackerName}" in a simple, recognizable way that users will understand at a glance.`;
 
-    // Call Google Gemini API for image generation using gemini-2.5-flash-image
+    // Call Google Gemini API for image generation using gemini-3-pro-image-preview
     console.log('Calling Gemini Image API for tracker:', trackerName);
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,7 +132,7 @@ The icon should visually represent the concept of "${trackerName}" in a simple, 
       imageUrl: signedUrlData.signedUrl,
       storagePath: uploadData.path,
       mimeType: imageData.mimeType,
-      modelName: 'gemini-2.5-flash-image'
+      modelName: 'gemini-3-pro-image-preview'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

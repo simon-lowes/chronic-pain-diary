@@ -9,6 +9,8 @@
         "kill": "fuser -k 5000/tcp",
         "build": "tsc -b --noCheck && vite build",
         "lint": "eslint .",
+        "test": "vitest run",
+        "test:watch": "vitest",
         "optimize": "vite optimize",
         "preview": "vite preview"
     },

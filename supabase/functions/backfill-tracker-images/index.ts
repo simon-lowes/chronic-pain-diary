@@ -64,7 +64,7 @@ The icon should visually represent the concept of "${trackerName}" in a simple, 
 
     // Call Gemini Image API
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -131,7 +131,7 @@ The icon should visually represent the concept of "${trackerName}" in a simple, 
       .update({
         image_url: signedUrlData.signedUrl,
         image_generated_at: new Date().toISOString(),
-        image_model_name: 'gemini-2.5-flash-image',
+        image_model_name: 'gemini-3-pro-image-preview',
         updated_at: new Date().toISOString(),
       })
       .eq('id', trackerId);
