@@ -50,16 +50,16 @@ describe('Edge Functions - Gemini 3.0 Model Strings', () => {
       functionCode = '';
     }
 
-    it('should use gemini-3-pro-image-preview for image generation', () => {
-      expect(functionCode).toContain('gemini-3-pro-image-preview');
+    it('should use gemini-2.5-flash-image for image generation (Nano Banana)', () => {
+      expect(functionCode).toContain('gemini-2.5-flash-image');
     });
 
-    it('should NOT use deprecated gemini-2.5-flash-image', () => {
-      expect(functionCode).not.toContain('gemini-2.5-flash-image');
+    it('should NOT use gemini-3-pro-image-preview (per API instructions)', () => {
+      expect(functionCode).not.toContain('gemini-3-pro-image-preview');
     });
 
-    it('should return gemini-3-pro-image-preview as modelName', () => {
-      expect(functionCode).toMatch(/modelName.*gemini-3-pro-image-preview/);
+    it('should return gemini-2.5-flash-image as modelName', () => {
+      expect(functionCode).toMatch(/modelName.*gemini-2.5-flash-image/);
     });
 
     it('should call the v1beta API endpoint', () => {
@@ -81,16 +81,16 @@ describe('Edge Functions - Gemini 3.0 Model Strings', () => {
       functionCode = '';
     }
 
-    it('should use gemini-3-pro-image-preview for image generation', () => {
-      expect(functionCode).toContain('gemini-3-pro-image-preview');
+    it('should use gemini-2.5-flash-image for image generation (Nano Banana)', () => {
+      expect(functionCode).toContain('gemini-2.5-flash-image');
     });
 
-    it('should NOT use deprecated gemini-2.5-flash-image', () => {
-      expect(functionCode).not.toContain('gemini-2.5-flash-image');
+    it('should NOT use gemini-3-pro-image-preview (per API instructions)', () => {
+      expect(functionCode).not.toContain('gemini-3-pro-image-preview');
     });
 
-    it('should store gemini-3-pro-image-preview in image_model_name field', () => {
-      expect(functionCode).toMatch(/image_model_name.*gemini-3-pro-image-preview/);
+    it('should store gemini-2.5-flash-image in image_model_name field', () => {
+      expect(functionCode).toMatch(/image_model_name.*gemini-2.5-flash-image/);
     });
 
     it('should implement rate limiting', () => {
@@ -101,33 +101,29 @@ describe('Edge Functions - Gemini 3.0 Model Strings', () => {
 });
 
 describe('Model String Constants', () => {
-  // Define expected model strings for Gemini 3.0
-  const GEMINI_3_TEXT_MODEL = 'gemini-3-flash-preview';
-  const GEMINI_3_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+  // Define expected model strings per Gemini_API_INSTRUCTIONS.md
+  const GEMINI_TEXT_MODEL = 'gemini-3-flash-preview';
+  const GEMINI_IMAGE_MODEL = 'gemini-2.5-flash-image'; // Nano Banana
   
-  // Deprecated models that should NOT appear in codebase
-  const DEPRECATED_MODELS = [
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-image',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-image',
+  // Models to avoid per API instructions
+  const AVOIDED_MODELS = [
+    'gemini-3-pro-image-preview',
   ];
 
-  it('should have correct Gemini 3.0 text model format', () => {
-    expect(GEMINI_3_TEXT_MODEL).toMatch(/^gemini-3-flash/);
-    expect(GEMINI_3_TEXT_MODEL).toContain('preview');
+  it('should have correct text model format (gemini-3-flash-preview)', () => {
+    expect(GEMINI_TEXT_MODEL).toMatch(/^gemini-3-flash/);
+    expect(GEMINI_TEXT_MODEL).toContain('preview');
   });
 
-  it('should have correct Gemini 3.0 image model format', () => {
-    expect(GEMINI_3_IMAGE_MODEL).toMatch(/^gemini-3-pro/);
-    expect(GEMINI_3_IMAGE_MODEL).toContain('image');
-    expect(GEMINI_3_IMAGE_MODEL).toContain('preview');
+  it('should have correct image model format (gemini-2.5-flash-image / Nano Banana)', () => {
+    expect(GEMINI_IMAGE_MODEL).toContain('2.5');
+    expect(GEMINI_IMAGE_MODEL).toContain('flash');
+    expect(GEMINI_IMAGE_MODEL).toContain('image');
   });
 
-  it('deprecated models should not match current models', () => {
-    DEPRECATED_MODELS.forEach((deprecated) => {
-      expect(GEMINI_3_TEXT_MODEL).not.toBe(deprecated);
-      expect(GEMINI_3_IMAGE_MODEL).not.toBe(deprecated);
+  it('avoided models should not match current image model', () => {
+    AVOIDED_MODELS.forEach((avoided) => {
+      expect(GEMINI_IMAGE_MODEL).not.toBe(avoided);
     });
   });
 });
@@ -139,15 +135,15 @@ describe('API Endpoint Validation', () => {
     expect(V1BETA_ENDPOINT).toContain('/v1beta/');
   });
 
-  it('should construct valid Gemini 3.0 text endpoint', () => {
+  it('should construct valid text generation endpoint', () => {
     const textEndpoint = `${V1BETA_ENDPOINT}gemini-3-flash-preview:generateContent`;
     expect(textEndpoint).toContain('gemini-3-flash-preview');
     expect(textEndpoint).toContain(':generateContent');
   });
 
-  it('should construct valid Gemini 3.0 image endpoint', () => {
-    const imageEndpoint = `${V1BETA_ENDPOINT}gemini-3-pro-image-preview:generateContent`;
-    expect(imageEndpoint).toContain('gemini-3-pro-image-preview');
+  it('should construct valid Nano Banana image endpoint', () => {
+    const imageEndpoint = `${V1BETA_ENDPOINT}gemini-2.5-flash-image:generateContent`;
+    expect(imageEndpoint).toContain('gemini-2.5-flash-image');
     expect(imageEndpoint).toContain(':generateContent');
   });
 });

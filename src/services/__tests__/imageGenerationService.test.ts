@@ -39,7 +39,7 @@ describe('imageGenerationService', () => {
         data: {
           imageUrl: 'https://example.com/image.png',
           storagePath: 'tracker-123-1234567890.png',
-          modelName: 'gemini-3-pro-image-preview',
+          modelName: 'gemini-2.5-flash-image',
         },
         error: null,
       });
@@ -62,17 +62,17 @@ describe('imageGenerationService', () => {
         data: {
           imageUrl: 'https://example.com/image.png',
           storagePath: 'tracker-123-1234567890.png',
-          modelName: 'gemini-3-pro-image-preview',
+          modelName: 'gemini-2.5-flash-image',
         },
         error: null,
       });
 
       const result = await generateTrackerImage('Migraine', 'tracker-456');
 
-      expect(result.modelName).toBe('gemini-3-pro-image-preview');
+      expect(result.modelName).toBe('gemini-2.5-flash-image');
     });
 
-    it('should use gemini-3-pro-image-preview as default model name when not provided', async () => {
+    it('should use gemini-2.5-flash-image as default model name when not provided', async () => {
       const mockInvoke = vi.mocked(supabaseClient.functions.invoke);
       mockInvoke.mockResolvedValue({
         data: {
@@ -86,7 +86,7 @@ describe('imageGenerationService', () => {
       const result = await generateTrackerImage('Fatigue', 'tracker-789');
 
       expect(result.success).toBe(true);
-      expect(result.modelName).toBe('gemini-3-pro-image-preview');
+      expect(result.modelName).toBe('gemini-2.5-flash-image');
     });
 
     it('should handle edge function errors gracefully', async () => {
@@ -142,26 +142,24 @@ describe('imageGenerationService', () => {
   });
 });
 
-describe('Gemini 3.0 Model Strings', () => {
-  it('should use gemini-3-pro-image-preview for image generation', () => {
-    // This test validates that the correct model string is used
-    const expectedImageModel = 'gemini-3-pro-image-preview';
+describe('Gemini Model Strings', () => {
+  it('should use gemini-2.5-flash-image for image generation (Nano Banana)', () => {
+    // This test validates that the correct model string is used per API instructions
+    const expectedImageModel = 'gemini-2.5-flash-image';
     
-    // The model string should match the Gemini 3.0 image model
-    expect(expectedImageModel).toMatch(/gemini-3.*image/);
-    expect(expectedImageModel).not.toContain('2.5');
+    // The model string should match the Nano Banana image model
+    expect(expectedImageModel).toContain('2.5');
+    expect(expectedImageModel).toContain('image');
   });
 
-  it('should not reference deprecated Gemini 2.5 models', () => {
-    const currentImageModel = 'gemini-3-pro-image-preview';
-    const deprecatedModels = [
-      'gemini-2.5-flash-image',
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
+  it('should not use gemini-3-pro-image-preview (per API instructions)', () => {
+    const currentImageModel = 'gemini-2.5-flash-image';
+    const avoidedModels = [
+      'gemini-3-pro-image-preview',
     ];
 
-    deprecatedModels.forEach((deprecated) => {
-      expect(currentImageModel).not.toBe(deprecated);
+    avoidedModels.forEach((avoided) => {
+      expect(currentImageModel).not.toBe(avoided);
     });
   });
 });
